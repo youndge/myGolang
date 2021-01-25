@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"../utils"
 )
@@ -110,10 +111,43 @@ func deferFunc(n1, n2 int) {
 	res := n1 + n2
 	fmt.Println("1. res=", res)
 }
+
+//8.值传递&引用传递&指针传递
+
+//9.字符串常用系统函数
+func strFuncs() {
+	//1.len(str)
+	//2.字符串遍历，同时处理有中文的问题 r:=[]rune(str)
+	strTraverse := func() {
+		str := "hello北京"
+		r := []rune(str)
+		for i := 0; i < len(r); i++ {
+			fmt.Printf("字符=%c\n", r[i])
+		}
+	}
+	strTraverse()
+	//3.字符串转整数  num, err := strconv.Atoi("12")
+	strConvertToInt := func() {
+		num, err := strconv.Atoi("12")
+		if nil != err {
+			fmt.Println("convert error!")
+		} else {
+			fmt.Println("convert success! num=%v", num)
+		}
+	}
+	strConvertToInt()
+	//4.正数转字符串
+	intConvertTo := func() {
+		str := strconv.Itoa(12345)
+		fmt.Printf("str=%v,str's type is %T\n", str, str)
+	}
+	intConvertTo()
+}
 func main() {
 	//packageExample()
 	//returnExample()
 	//anonymousFunc()
 	//ClosureFunc()
-	deferFunc(10, 20)
+	//deferFunc(10, 20)
+	strFuncs()
 }
