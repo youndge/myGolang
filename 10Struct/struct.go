@@ -2,6 +2,7 @@ package main
 import (
 	"fmt"
 	"unsafe"
+	"encoding/json"
 )
 /*
 1.结构体声明：
@@ -105,7 +106,7 @@ func AssignMemory()  {
 	ii)结构体之间类型转换需要有完全相同的字段（字段名，字段个数，字段类型）；
 	iii)结构体用type重新定义（相当于取别名），Go会认为是全新的类型，但是可以强转；
 	iV)struct的每个字段上可以写上一个tag，该tag可以通过反射机制获取，常见的使用场景
-	就是序列化和反序列化；
+	就是序列化和反序列化；Tag()
 */
 type Point struct{
 	x int
@@ -133,9 +134,24 @@ func FieldMemory()  {
 	//指向地址
 	fmt.Printf("r2.leftUp:%p,r2.rightDown:%p\n",r2.leftUp,r2.rightDown)
 }
+type Monster struct{
+	Name string `json:"name"`
+	Age int `json:"age"`
+	Skill string `json:"skill"`
+}
+func Tag()  {
+	monster := Monster{"牛魔王", 500,"芭蕉扇"}
+
+	jsonStr,err := json.Marshal(monster)
+	if nil != err{
+		fmt.Println("json 处理错误 ", err)
+	}
+	fmt.Println("jsonStr", string(jsonStr))
+}
 func main()  {
 	//Declare()
 	//Create()
 	//AssignMemory()
-	FieldMemory()
+	//FieldMemory()
+	Tag()
 }
