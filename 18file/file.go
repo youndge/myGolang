@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 )
 
@@ -28,6 +31,58 @@ func openClose() {
 	}
 }
 
+/**
+3.读文件并显示在终端
+	1）带缓冲区的方式，os。Open，file.Close,bufio.NewReader(),reader.ReadString;
+	2)实用ioutil一次性将整个文件读入到内存中，适用于文件不大的情况，ioutil.ReadFile;
+*/
+func Read1() {
+	file, err := os.Open("test.c")
+	if err != nil {
+		fmt.Println("Open file err:", err)
+	}
+	defer file.Close()
+	//创建一个reader
+	reader := bufio.NewReader(file)
+	for {
+		str, err := reader.ReadString('\n')
+		if err == io.EOF {
+			break //io.EOF表示文件结尾
+		}
+		//输出内容
+		fmt.Print(str)
+	}
+	fmt.Println("read file over!")
+}
+func Read2() {
+	//使用ioutil.ReadFile()一次性将文件读取到位
+	file := "test.c"
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		fmt.Printf("read file err:\n", err)
+	}
+	//将读取内容显示到终端
+	fmt.Printf("%v", string(content))
+	//没有显示的Open文件，因此也无需显示的Close
+	//实际上Open和Close封装到了ReadFile函数内部
+}
+
+func Write() {
+	filePath := "output.txt"
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println("open file err:", err)
+		return
+	}
+	defer file.Close()
+	str := "hello world!\n"
+	writer := bufio.NewWriter(file)
+	writer.WriteString(str)
+	writer.Flush()
+}
 func main() {
-	openClose()
+	// openClose()
+	// Read1()
+	// Read2()
+	Write()
 }
