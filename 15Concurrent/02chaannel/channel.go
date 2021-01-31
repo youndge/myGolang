@@ -53,6 +53,73 @@ func ChannelDemo() {
 	// val4 := <-intChan
 	// fmt.Println("val:", val4)
 }
+
+/**
+4.channel的遍历和关闭
+	1）内置close函数可以关闭channel，关闭的channel不能再写数据，可以读数据；
+	2）channel支持for...:= range方式进行遍历，如果遍历时channel没有关闭，
+		则会出现deadlock错误；
+*/
+func TraverseChan() {
+	intChan := make(chan int, 10)
+	for i := 0; i < 10; i++ {
+		intChan <- i * 2
+	}
+	fmt.Printf("channel length:%v，channel cap:%v\n", len(intChan), cap(intChan))
+	close(intChan) //关闭channel
+	// for i:=0;i<len(intChan);i++{}普通for循环不能遍历channel
+	for v := range intChan {
+		fmt.Println("v:", v)
+	}
+}
+
+/**
+5.channel应用实例
+	1）goroutine和channel协同工作的案例：ChanAppTest01()
+		i.开启一个writeData协裎，向管道intChan写入50个数据；
+		ii.开启一个readData协裎，从管道intChan中读取WriteData写入的数据；
+		iii.注意：writeData和readData操作的是同一个管道；
+		iv.主线程需要等待writeData和readData协裎都完成工作才能退出管道；
+*/
+func ChanAppTest01() {
+	//创建两个管道
+	intChan := make(chan int, 10)
+	exitChan := make(chan bool, 1)
+
+	//开启线程
+	go writeData(intChan)
+	go readData(intChan, exitChan)
+	//如果exitChan读出true表示协裎运行完，退出
+	for {
+		_, ok := <-exitChan
+		if !ok {
+			break
+		}
+	}
+
+}
+func writeData(intChan chan int) {
+	for i := 1; i <= 10; i++ { //注释掉go readData，写入数据扩大到50条，会阻塞而deadlock；
+		intChan <- i
+		fmt.Println("writeData:", i)
+	}
+	close(intChan)
+}
+func readData(intChan chan int, exitChan chan bool) {
+	for {
+		v, ok := <-intChan
+		if !ok {
+			break
+		}
+		fmt.Println("readData:", v)
+	}
+	//读完50个数据，写入exitChan为true
+	exitChan <- true
+	close(exitChan)
+	fmt.Println("***readData complete!")
+}
 func main() {
-	ChannelDemo()
+	// ChannelDemo()
+	// TraverseChan()
+	ChanAppTest01()
 }
