@@ -68,6 +68,6 @@ func Demo() {
     空接口interface{}没有任何方法，即所有类型都实现了空接口，即任何一个变量都可以赋值给空接口；
 */
 
-func main() {
-	Demo()
-}
+// func main() {
+// 	Demo()
+// }
