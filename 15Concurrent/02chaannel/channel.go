@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 /**
 1.channel基本介绍
@@ -118,8 +121,183 @@ func readData(intChan chan int, exitChan chan bool) {
 	close(exitChan)
 	fmt.Println("***readData complete!")
 }
+
+/*应用实例3:统计1～200000的数字中，哪些是素数？*/
+func ChanAppTest03() {
+	intChan := make(chan int, 1000)
+	primeChan := make(chan int, 2000)
+	//标识退出的管道
+	exitChan := make(chan bool, 4)
+
+	//开启一个协裎，向intChan写入1-8000个数
+	go putNum(intChan)
+	//开启4个协裎，从intChan取数，是素数就写入primeChan
+	for i := 0; i < 4; i++ {
+		go primeNum(intChan, primeChan, exitChan)
+	}
+
+	//主线程处理
+	go func() {
+		for i := 0; i < 4; i++ {
+			<-exitChan
+		}
+		//当exitChan中4个结果全部取出，即可关闭primeChan
+		close(primeChan)
+	}()
+
+	//遍历primeChan，取出结果
+	for {
+		res, ok := <-primeChan
+		if !ok {
+			break
+		}
+		fmt.Printf("素数:%d\n", res)
+	}
+
+	fmt.Println("main 线程结束")
+}
+func putNum(intChan chan int) {
+	for i := 1; i <= 8000; i++ {
+		intChan <- i
+	}
+	close(intChan)
+}
+func primeNum(intChan chan int, primeChan chan int, exitChan chan bool) {
+	var flag bool
+	for {
+		time.Sleep(time.Second * 2)
+		num, ok := <-intChan
+		if !ok {
+			break
+		}
+		flag = true
+		//判断num是否是素数
+		for i := 2; i < num; i++ {
+			if num%i == 0 {
+				//不是素数置false
+				flag = false
+				break
+			}
+		}
+		if flag {
+			primeChan <- num
+		}
+	}
+	fmt.Println("有一个primeNum协裎因为取不到数据，退出！")
+	exitChan <- true
+}
+
+/**
+6.channel使用细节和注意事项
+	1）channel默认是双向的，但可以声明为只读，或者只写性质；
+		var chanOnlyWrite chan<- int  //声明只写channel
+		var chanOnlyRead <-chan int   //声明只读channel
+		应用实例：OnlyRWChanApp()
+	2)使用select可以解决从管道取数据的阻塞问题；SelectApp()
+	3）goroutine中使用recover，解决协裎中出现的panic，导致程序崩溃问题；RecoverApp()
+*/
+func send(ch chan<- int, exitChan chan struct{}) {
+	for i := 0; i < 10; i++ {
+		ch <- i
+	}
+	close(ch)
+	var a struct{}
+	exitChan <- a
+}
+func recv(ch <-chan int, exitChan chan struct{}) {
+	for {
+		v, ok := <-ch
+		if !ok {
+			break
+		}
+		fmt.Println(v)
+	}
+	var a struct{}
+	exitChan <- a
+}
+func OnlyRWChanApp() {
+	ch := make(chan int, 10)
+	exitChan := make(chan struct{}, 2)
+	go send(ch, exitChan)
+	go recv(ch, exitChan)
+
+	total := 0
+	for _ = range exitChan {
+		total++
+		if total == 2 {
+			break
+		}
+	}
+	fmt.Println("over...")
+}
+
+/*6.2 select解决阻塞应用实例*/
+func SelectApp() {
+	//1.创建一个channel int 10
+	intChan := make(chan int, 10)
+	for i := 0; i < 10; i++ {
+		intChan <- i
+	}
+	//2.创建一个channel string 5
+	strChan := make(chan string, 5)
+	for i := 0; i < 5; i++ {
+		strChan <- "hello" + fmt.Sprintf("%d", i)
+	}
+
+	//传统方法在遍历管道时，如果不关闭会阻塞导致deadlock
+	//然而实际开发中我们不好确定什么时候需要关闭管道，所以引用select来解决;
+	for {
+		select {
+		/*注意：如果intChan一直没有关闭，不会一直阻塞而deadlock，
+		这里会自动匹配下一个case*/
+		case v := <-intChan:
+			fmt.Printf("Read data(%d) from intChan\n", v)
+			time.Sleep(time.Second)
+		case v := <-strChan:
+			fmt.Printf("Read data(%d) from strChan\n", v)
+			time.Sleep(time.Second)
+		default:
+			fmt.Printf("Read data fail!\n")
+			time.Sleep(time.Second)
+			return
+		}
+	}
+}
+
+/*6.3 recover应用实例*/
+func sayHello() {
+	for i := 0; i < 5; i++ {
+		time.Sleep(time.Second)
+		fmt.Println("hello world!")
+	}
+}
+func test() {
+	//这里使用defer + recover
+	defer func() {
+		//捕获test抛出的panic
+		if err := recover(); err != nil {
+			fmt.Println("test() error occurred:", err)
+		}
+	}()
+	//定义了一个map
+	myMap := make(map[int]string)
+	myMap[0] = "golang" //error
+}
+func RecoverApp() {
+	go sayHello()
+	go test()
+
+	for i := 0; i < 5; i++ {
+		fmt.Sprintln("main() ok=", i)
+		time.Sleep(time.Second)
+	}
+}
 func main() {
 	// ChannelDemo()
 	// TraverseChan()
-	ChanAppTest01()
+	// ChanAppTest01()
+	// ChanAppTest03()
+	// OnlyRWChanApp()
+	// SelectApp()
+	RecoverApp()
 }
